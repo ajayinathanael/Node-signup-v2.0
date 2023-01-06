@@ -1,0 +1,1 @@
+This is the version 2.0 of the Nodejs Application. The additional feature is the google signin and signup
