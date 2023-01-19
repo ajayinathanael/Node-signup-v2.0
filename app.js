@@ -10,6 +10,7 @@ const passport = require("passport");
 const passportLocalMongoose = require("passport-local-mongoose");
 const findOrCreate = require('mongoose-findorcreate')
 const GoogleStrategy = require('passport-google-oauth20').Strategy;
+const GitHubStrategy = require('passport-github2').Strategy;
 
 
 const app = express();  
@@ -38,7 +39,8 @@ const userSchema = new mongoose.Schema({
     email: String,
     phonenumber: String,
     password: String,
-    googleId: String
+    googleId: String,
+    githubId: String
 });
 
 userSchema.plugin(passportLocalMongoose);
@@ -62,6 +64,7 @@ passport.deserializeUser(function(id,done){
     })
     })
 
+//using google passport strategy    
 passport.use(new GoogleStrategy({
     clientID: process.env.CLIENT_ID,
     clientSecret: process.env.CLIENT_SECRET,
@@ -74,9 +77,24 @@ passport.use(new GoogleStrategy({
 
     User.findOrCreate({ googleId: profile.id }, function (err, user) {
       return cb(err, user);
-    });
+    });                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     
   }
 ));
+
+//using github passport strategy
+passport.use(new GitHubStrategy({
+  clientID: process.env.GITHUB_CLIENT_ID,
+  clientSecret: process.env.GITHUB_CLIENT_SECRET,
+  callbackURL: "http://localhost:4500/auth/github/todo"
+},
+function(accessToken, refreshToken, profile, cb) {
+  User.findOrCreate({ githubId: profile.id }, function (err, user) {
+    return cb(err, user);
+  });
+}
+));
+
+
 
 //TODO model
 const itemsSchema = {
@@ -118,12 +136,26 @@ app.get("/auth/google",
   passport.authenticate('google', { scope: ['profile'] }
 ));
 
+app.get("/auth/github",
+  passport.authenticate('github', { scope: [ 'user:email' ] }
+));
+
+ 
 app.get("/auth/google/todo", 
   passport.authenticate('google', { failureRedirect: '/' }),
   function(req, res) {
     // Successful authentication, redirect to secrets route.
     res.redirect("/todo");
   });
+
+
+app.get('/auth/github/todo', 
+  passport.authenticate('github', { failureRedirect: '/' }),
+  function(req, res) {
+    // Successful authentication, redirect home.
+    res.redirect('/todo');
+  });
+
 
 app.get("/register", (req,res)=>{
     res.render("register");
